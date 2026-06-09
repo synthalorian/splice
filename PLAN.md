@@ -112,12 +112,15 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 7: diff and log commands
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
-- [ ] Documentation update
+- [x] Core implementation
+- [x] Tests
+- [x] Documentation update
 
 **Notes:**
-- 
+- `splice log` walks linear commit history from HEAD via first parent and prints commit hash, author, date, and indented message.
+- `splice diff` supports three forms: no args (HEAD vs working directory), one commit arg (commit vs working directory), and two commit args (commit vs commit).
+- Diff outputs one status line per changed path using A (added), D (deleted), or M (modified) left-aligned in a 4-character column.
+- Library API added: `splice_diff_trees()`, `splice_diff_tree_workdir()`, `splice_diff_commits()`, `splice_log()`, `splice_log_oid()`.
 
 ---
 

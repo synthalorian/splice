@@ -12,5 +12,8 @@ tests/test_tree
 tests/test_commit
 tests/test_refs
 tests/test_cli
+tests/test_checkout
+tests/test_sparse
+tests/test_diff_log
 build/
 cmake-build-*/

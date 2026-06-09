@@ -45,12 +45,15 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 3: Tree object and commit graph
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
+- [x] Core implementation
+- [x] Tests
 - [ ] Documentation update
 
 **Notes:**
-- 
+- Tree objects implemented with binary serialization (count + sorted entries with mode/name_len/name/oid).
+- Commit objects use text format (tree/parent/author/time headers + message).
+- Refs stored as files under refs/ directory; HEAD is symbolic ref.
+- Bug fixes: empty tree support, empty message roundtrip, HEAD parsing off-by-one. 
 
 ---
 

@@ -1,0 +1,160 @@
+# splice — Implementation Plan
+
+## Project Overview
+
+Minimalist Git alternative for binary assets. Content-addressable storage, delta compression, designed for game devs drowning in .psd and .fbx files.
+
+**Language:** C  
+**Constraint:** Frankenstein week  
+**Stack:** libgit2-inspired, xxhash, zstd, mmap
+
+---
+
+## Phase Breakdown
+
+### Phase 1: Object store — content-addressable blob storage
+
+**Goal:** Phase 1: Object store — content-addressable blob storage
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 2: Delta compression engine (zstd)
+
+**Goal:** Phase 2: Delta compression engine (zstd)
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 3: Tree object and commit graph
+
+**Goal:** Phase 3: Tree object and commit graph
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 4: CLI: init, add, commit
+
+**Goal:** Phase 4: CLI: init, add, commit
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 5: Checkout with lazy materialization
+
+**Goal:** Phase 5: Checkout with lazy materialization
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 6: Partial clone and sparse checkout
+
+**Goal:** Phase 6: Partial clone and sparse checkout
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 7: diff and log commands
+
+**Goal:** Phase 7: diff and log commands
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+### Phase 8: C library API and bindings
+
+**Goal:** Phase 8: C library API and bindings
+
+**Deliverables:**
+- [ ] Core implementation
+- [ ] Tests
+- [ ] Documentation update
+
+**Notes:**
+- 
+
+---
+
+## Architecture Notes
+
+### Key Decisions
+
+- 
+
+### Data Flow
+
+```
+[Input] → [Parse] → [Transform] → [Output]
+```
+
+### Error Handling Strategy
+
+- 
+
+---
+
+## Testing Strategy
+
+- Unit tests for core functions
+- Integration tests for full pipeline
+- Benchmarks for performance-critical paths
+
+---
+
+## Open Questions
+
+1. 
+2. 
+
+---
+
+*Generated for opencode sprint. Implement phase by phase. DO NOT RESEARCH. Build directly.*

@@ -95,12 +95,15 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 6: Partial clone and sparse checkout
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
-- [ ] Documentation update
+- [x] Core implementation
+- [x] Tests
+- [x] Documentation update
 
 **Notes:**
-- 
+- Sparse checkout implemented with shell-style wildcard pattern matching (fnmatch), pattern persistence in `.splice/sparse-checkout`, and negation support (`!pattern`).
+- `splice_checkout_sparse()` filters tree entries by patterns before writing to working directory.
+- CLI `sparse-checkout` subcommand supports `set`, `add`, `remove`, and `list` operations.
+- Partial clone infrastructure: `splice_object_promise()` marks objects as referenced-but-missing, `splice_object_is_promised()` checks promise status, `splice_object_is_local()` wraps existence check for partial-clone semantics.
 
 ---
 

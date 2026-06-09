@@ -156,6 +156,12 @@ void splice_store_close(splice_store *store)
     free(store);
 }
 
+const char *splice_store_path(splice_store *store)
+{
+    if (!store) return NULL;
+    return store->path;
+}
+
 int splice_object_write_typed(splice_store *store,
                               splice_object_type type,
                               const void *data,

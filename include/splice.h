@@ -34,6 +34,9 @@ splice_store *splice_store_open(const char *path);
 /* Close a store and free associated resources. */
 void splice_store_close(splice_store *store);
 
+/* Get the path of an open store. Returns NULL on error. */
+const char *splice_store_path(splice_store *store);
+
 /* Object operations ------------------------------------------------------- */
 
 /* Write a blob to the store. Returns 0 on success, -1 on error.
@@ -239,5 +242,67 @@ int splice_checkout_lazy(splice_store *store, const splice_oid *tree_oid, const 
  * Reads the placeholder, fetches the blob from the store, writes actual content.
  * Returns 0 on success, -1 on error. */
 int splice_materialize(splice_store *store, const char *path);
+
+/* Sparse checkout --------------------------------------------------------- */
+
+/* A collection of path patterns for sparse checkout.
+ * Patterns use shell-style wildcards: * matches any sequence of characters,
+ * ? matches a single character. A leading '!' negates the pattern. */
+typedef struct {
+    char **patterns;
+    size_t count;
+    size_t capacity;
+} splice_sparse_checkout;
+
+/* Load sparse-checkout patterns from the store's sparse-checkout file.
+ * Returns 0 on success, -1 on error.
+ * On success, out_sc is populated; caller must call splice_sparse_free(). */
+int splice_sparse_load(const char *store_path, splice_sparse_checkout *out_sc);
+
+/* Save sparse-checkout patterns to the store's sparse-checkout file.
+ * Returns 0 on success, -1 on error. */
+int splice_sparse_save(const char *store_path, const splice_sparse_checkout *sc);
+
+/* Add a pattern to sparse-checkout.
+ * Returns 0 on success, -1 on error. */
+int splice_sparse_add(splice_sparse_checkout *sc, const char *pattern);
+
+/* Remove a pattern from sparse-checkout by index.
+ * Returns 0 on success, -1 on error. */
+int splice_sparse_remove(splice_sparse_checkout *sc, size_t index);
+
+/* Free sparse-checkout patterns. */
+void splice_sparse_free(splice_sparse_checkout *sc);
+
+/* Check if a path matches any sparse-checkout pattern.
+ * Patterns are evaluated in order; the last matching pattern wins.
+ * Returns 1 if included, 0 if excluded. */
+int splice_sparse_matches(const splice_sparse_checkout *sc, const char *path);
+
+/* Checkout a tree with sparse-checkout filtering.
+ * Only writes files matching at least one positive pattern and no later
+ * negating pattern. If sc is NULL or has no patterns, behaves like
+ * splice_checkout().
+ * Returns 0 on success, -1 on error. */
+int splice_checkout_sparse(splice_store *store,
+                           const splice_oid *tree_oid,
+                           const char *target_path,
+                           const splice_sparse_checkout *sc);
+
+/* Partial clone / object availability ------------------------------------- */
+
+/* Check whether an object is available locally (not just referenced).
+ * Returns 1 if available, 0 if missing, -1 on error. */
+int splice_object_is_local(splice_store *store, const splice_oid *oid);
+
+/* Mark an object as "promised" — referenced but not available locally.
+ * This is used in partial clone scenarios where the object exists
+ * remotely but has not been fetched yet.
+ * Returns 0 on success, -1 on error. */
+int splice_object_promise(splice_store *store, const splice_oid *oid);
+
+/* Check whether an object is promised (referenced but not local).
+ * Returns 1 if promised, 0 if not, -1 on error. */
+int splice_object_is_promised(splice_store *store, const splice_oid *oid);
 
 #endif

@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -O2 -Iinclude
 LDFLAGS = -lzstd -lxxhash
 
-SRC = src/main.c src/store.c src/delta.c src/tree.c src/commit.c src/refs.c src/index.c src/checkout.c
+SRC = src/main.c src/store.c src/delta.c src/tree.c src/commit.c src/refs.c src/index.c src/checkout.c src/sparse.c
 OBJ = $(SRC:.c=.o)
 TARGET = splice
 
@@ -34,7 +34,11 @@ TEST_CHECKOUT_SRC = tests/test_checkout.c src/store.c src/tree.c src/commit.c sr
 TEST_CHECKOUT_OBJ = $(TEST_CHECKOUT_SRC:.c=.o)
 TEST_CHECKOUT_TARGET = tests/test_checkout
 
-TEST_TARGETS = $(TEST_STORE_TARGET) $(TEST_DELTA_TARGET) $(TEST_TREE_TARGET) $(TEST_COMMIT_TARGET) $(TEST_REFS_TARGET) $(TEST_CLI_TARGET) $(TEST_CHECKOUT_TARGET)
+TEST_SPARSE_SRC = tests/test_sparse.c src/store.c src/tree.c src/sparse.c
+TEST_SPARSE_OBJ = $(TEST_SPARSE_SRC:.c=.o)
+TEST_SPARSE_TARGET = tests/test_sparse
+
+TEST_TARGETS = $(TEST_STORE_TARGET) $(TEST_DELTA_TARGET) $(TEST_TREE_TARGET) $(TEST_COMMIT_TARGET) $(TEST_REFS_TARGET) $(TEST_CLI_TARGET) $(TEST_CHECKOUT_TARGET) $(TEST_SPARSE_TARGET)
 
 .PHONY: all clean test
 
@@ -64,6 +68,9 @@ $(TEST_CLI_TARGET): $(TEST_CLI_OBJ)
 $(TEST_CHECKOUT_TARGET): $(TEST_CHECKOUT_OBJ)
 	$(CC) $(TEST_CHECKOUT_OBJ) -o $@ $(LDFLAGS)
 
+$(TEST_SPARSE_TARGET): $(TEST_SPARSE_OBJ)
+	$(CC) $(TEST_SPARSE_OBJ) -o $@ $(LDFLAGS)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -75,6 +82,7 @@ test: $(TEST_TARGETS)
 	./$(TEST_REFS_TARGET)
 	./$(TEST_CLI_TARGET)
 	./$(TEST_CHECKOUT_TARGET)
+	./$(TEST_SPARSE_TARGET)
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_STORE_OBJ) $(TEST_DELTA_OBJ) $(TEST_TREE_OBJ) $(TEST_COMMIT_OBJ) $(TEST_REFS_OBJ) $(TEST_CLI_OBJ) $(TEST_TARGETS)
+	rm -f $(OBJ) $(TARGET) $(TEST_STORE_OBJ) $(TEST_DELTA_OBJ) $(TEST_TREE_OBJ) $(TEST_COMMIT_OBJ) $(TEST_REFS_OBJ) $(TEST_CLI_OBJ) $(TEST_CHECKOUT_OBJ) $(TEST_SPARSE_OBJ) $(TEST_TARGETS)

@@ -8,8 +8,21 @@
 
 #define SPLICE_OID_HEXSZ 17  /* 16 hex chars + null terminator */
 
+/* Version ----------------------------------------------------------------- */
+
+#define SPLICE_VERSION_MAJOR 0
+#define SPLICE_VERSION_MINOR 1
+#define SPLICE_VERSION_PATCH 0
+
+/* Return the version string, e.g. "0.1.0". */
+const char *splice_version_string(void);
+
+/* Return version components via out-parameters (NULL ok). */
+void splice_version(int *major, int *minor, int *patch);
+
 /* Forward declarations */
 typedef struct splice_store splice_store;
+typedef struct splice_repo splice_repo;
 
 /* Object types */
 typedef enum {
@@ -337,5 +350,85 @@ int splice_object_promise(splice_store *store, const splice_oid *oid);
 /* Check whether an object is promised (referenced but not local).
  * Returns 1 if promised, 0 if not, -1 on error. */
 int splice_object_is_promised(splice_store *store, const splice_oid *oid);
+
+/* Error handling ---------------------------------------------------------- */
+
+typedef enum {
+    SPLICE_OK = 0,
+    SPLICE_ERROR_NOMEM = -1,
+    SPLICE_ERROR_NOTFOUND = -2,
+    SPLICE_ERROR_EXISTS = -3,
+    SPLICE_ERROR_INVALID = -4,
+    SPLICE_ERROR_IO = -5,
+    SPLICE_ERROR_CORRUPTED = -6,
+    SPLICE_ERROR_UNKNOWN = -7,
+} splice_error;
+
+/* Return a human-readable description of a splice_error. */
+const char *splice_strerror(splice_error err);
+
+/* Repository (high-level API) --------------------------------------------- */
+
+/* Initialize a new repository at the given path.
+ * Creates <path>/.splice/ and sets up HEAD -> refs/heads/main.
+ * Returns a repo handle on success, NULL on error. */
+splice_repo *splice_repo_init(const char *path);
+
+/* Open an existing repository at the given path.
+ * The path is the directory containing .splice/ (not .splice itself).
+ * Returns a repo handle on success, NULL on error. */
+splice_repo *splice_repo_open(const char *path);
+
+/* Discover and open a repository by walking up from start_dir.
+ * Returns a repo handle on success, NULL if no repo found. */
+splice_repo *splice_repo_discover(const char *start_dir);
+
+/* Close a repository and free all associated resources. */
+void splice_repo_close(splice_repo *repo);
+
+/* Access the underlying store from a repo handle. */
+splice_store *splice_repo_store(splice_repo *repo);
+
+/* Get the path to the .splice directory. */
+const char *splice_repo_path(splice_repo *repo);
+
+/* Get the path to the working directory. */
+const char *splice_repo_workdir(splice_repo *repo);
+
+/* Stage files into the index. paths is an array of file paths relative
+ * to the working directory. Returns 0 on success, -1 on error. */
+int splice_repo_add(splice_repo *repo, const char **paths, size_t count);
+
+/* Create a commit from the current index.
+ * If author is NULL, uses SPLICE_AUTHOR env or current user.
+ * Returns 0 on success, -1 on error. */
+int splice_repo_commit(splice_repo *repo, const char *message, const char *author);
+
+/* Checkout a ref into the working directory.
+ * If lazy is non-zero, writes placeholder files instead of content.
+ * Returns 0 on success, -1 on error. */
+int splice_repo_checkout(splice_repo *repo, const char *ref, int lazy);
+
+/* Print commit log starting from a ref.
+ * If ref is NULL, uses the current branch (HEAD).
+ * Returns 0 on success, -1 on error. */
+int splice_repo_log(splice_repo *repo, const char *ref);
+
+/* Diff commits or working directory.
+ * old_ref=NULL && new_ref=NULL  -> HEAD vs working directory
+ * old_ref!=NULL && new_ref=NULL -> commit vs working directory
+ * old_ref!=NULL && new_ref!=NULL -> commit vs commit
+ * Returns 0 on success, -1 on error. */
+int splice_repo_diff(splice_repo *repo,
+                     const char *old_ref,
+                     const char *new_ref);
+
+/* Load sparse-checkout patterns for this repository.
+ * Returns 0 on success, -1 on error. */
+int splice_repo_sparse_load(splice_repo *repo, splice_sparse_checkout *out_sc);
+
+/* Save sparse-checkout patterns for this repository.
+ * Returns 0 on success, -1 on error. */
+int splice_repo_sparse_save(splice_repo *repo, const splice_sparse_checkout *sc);
 
 #endif

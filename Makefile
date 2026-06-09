@@ -2,9 +2,15 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -O2 -Iinclude
 LDFLAGS = -lzstd -lxxhash
 
-SRC = src/main.c src/store.c src/delta.c src/tree.c src/commit.c src/refs.c src/index.c src/checkout.c src/sparse.c src/diff.c src/log.c
+SRC = src/main.c src/store.c src/delta.c src/tree.c src/commit.c src/refs.c src/index.c src/checkout.c src/sparse.c src/diff.c src/log.c src/lib.c
 OBJ = $(SRC:.c=.o)
 TARGET = splice
+
+# Library sources (everything except main.c)
+LIB_SRC = src/store.c src/delta.c src/tree.c src/commit.c src/refs.c src/index.c src/checkout.c src/sparse.c src/diff.c src/log.c src/lib.c
+LIB_OBJ = $(LIB_SRC:.c=.o)
+STATIC_LIB = libsplice.a
+SHARED_LIB = libsplice.so
 
 TEST_STORE_SRC = tests/test_store.c src/store.c
 TEST_STORE_OBJ = $(TEST_STORE_SRC:.c=.o)
@@ -42,14 +48,24 @@ TEST_DIFF_LOG_SRC = tests/test_diff_log.c src/store.c src/tree.c src/commit.c sr
 TEST_DIFF_LOG_OBJ = $(TEST_DIFF_LOG_SRC:.c=.o)
 TEST_DIFF_LOG_TARGET = tests/test_diff_log
 
-TEST_TARGETS = $(TEST_STORE_TARGET) $(TEST_DELTA_TARGET) $(TEST_TREE_TARGET) $(TEST_COMMIT_TARGET) $(TEST_REFS_TARGET) $(TEST_CLI_TARGET) $(TEST_CHECKOUT_TARGET) $(TEST_SPARSE_TARGET) $(TEST_DIFF_LOG_TARGET)
+TEST_LIB_SRC = tests/test_lib.c $(LIB_SRC)
+TEST_LIB_OBJ = $(TEST_LIB_SRC:.c=.o)
+TEST_LIB_TARGET = tests/test_lib
+
+TEST_TARGETS = $(TEST_STORE_TARGET) $(TEST_DELTA_TARGET) $(TEST_TREE_TARGET) $(TEST_COMMIT_TARGET) $(TEST_REFS_TARGET) $(TEST_CLI_TARGET) $(TEST_CHECKOUT_TARGET) $(TEST_SPARSE_TARGET) $(TEST_DIFF_LOG_TARGET) $(TEST_LIB_TARGET)
 
 .PHONY: all clean test
 
-all: $(TARGET)
+all: $(TARGET) $(STATIC_LIB) $(SHARED_LIB)
 
 $(TARGET): $(OBJ)
 	$(CC) $(OBJ) -o $@ $(LDFLAGS)
+
+$(STATIC_LIB): $(LIB_OBJ)
+	ar rcs $@ $(LIB_OBJ)
+
+$(SHARED_LIB): $(LIB_OBJ)
+	$(CC) -shared -fPIC -o $@ $(LIB_OBJ) $(LDFLAGS)
 
 $(TEST_STORE_TARGET): $(TEST_STORE_OBJ)
 	$(CC) $(TEST_STORE_OBJ) -o $@ $(LDFLAGS)
@@ -78,6 +94,9 @@ $(TEST_SPARSE_TARGET): $(TEST_SPARSE_OBJ)
 $(TEST_DIFF_LOG_TARGET): $(TEST_DIFF_LOG_OBJ)
 	$(CC) $(TEST_DIFF_LOG_OBJ) -o $@ $(LDFLAGS)
 
+$(TEST_LIB_TARGET): $(TEST_LIB_OBJ)
+	$(CC) $(TEST_LIB_OBJ) -o $@ $(LDFLAGS)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -91,6 +110,9 @@ test: $(TEST_TARGETS)
 	./$(TEST_CHECKOUT_TARGET)
 	./$(TEST_SPARSE_TARGET)
 	./$(TEST_DIFF_LOG_TARGET)
+	./$(TEST_LIB_TARGET)
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TEST_STORE_OBJ) $(TEST_DELTA_OBJ) $(TEST_TREE_OBJ) $(TEST_COMMIT_OBJ) $(TEST_REFS_OBJ) $(TEST_CLI_OBJ) $(TEST_CHECKOUT_OBJ) $(TEST_SPARSE_OBJ) $(TEST_DIFF_LOG_OBJ) $(TEST_TARGETS)
+	rm -f $(OBJ) $(TARGET) $(STATIC_LIB) $(SHARED_LIB) \
+	  $(TEST_STORE_OBJ) $(TEST_DELTA_OBJ) $(TEST_TREE_OBJ) $(TEST_COMMIT_OBJ) $(TEST_REFS_OBJ) $(TEST_CLI_OBJ) $(TEST_CHECKOUT_OBJ) $(TEST_SPARSE_OBJ) $(TEST_DIFF_LOG_OBJ) $(TEST_LIB_OBJ) \
+	  $(TEST_TARGETS)

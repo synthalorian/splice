@@ -20,6 +20,7 @@ static void print_usage(const char *prog)
     fprintf(stderr, "  init [path]       Initialize a new splice repository\n");
     fprintf(stderr, "  add <file>        Add a file to the staging area\n");
     fprintf(stderr, "  commit -m <msg>   Create a commit from staged files\n");
+    fprintf(stderr, "  checkout [--lazy] <ref>  Checkout a commit to the working directory\n");
 }
 
 /* Walk up from start_dir looking for a .splice directory.
@@ -396,6 +397,91 @@ static int cmd_commit(int argc, char **argv)
     return 0;
 }
 
+static int cmd_checkout(int argc, char **argv)
+{
+    int lazy = 0;
+    const char *ref = NULL;
+
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "--lazy") == 0) {
+            lazy = 1;
+        } else {
+            ref = argv[i];
+        }
+    }
+
+    if (!ref) {
+        fprintf(stderr, "error: no ref specified\n");
+        return 1;
+    }
+
+    char cwd[4096];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        fprintf(stderr, "error: cannot get current directory\n");
+        return 1;
+    }
+
+    char *splice_dir = find_splice_dir(cwd);
+    if (!splice_dir) {
+        fprintf(stderr, "error: not a splice repository\n");
+        return 1;
+    }
+
+    splice_store *store = splice_store_open(splice_dir);
+    if (!store) {
+        fprintf(stderr, "error: failed to open repository\n");
+        free(splice_dir);
+        return 1;
+    }
+
+    /* Resolve ref to commit OID */
+    splice_oid commit_oid;
+    char ref_path[256];
+    snprintf(ref_path, sizeof(ref_path), "refs/heads/%s", ref);
+
+    if (splice_ref_read(store, ref_path, &commit_oid) != 0) {
+        /* Try as full ref name */
+        if (splice_ref_read(store, ref, &commit_oid) != 0) {
+            fprintf(stderr, "error: ref not found: %s\n", ref);
+            splice_store_close(store);
+            free(splice_dir);
+            return 1;
+        }
+    }
+
+    /* Read commit to get tree */
+    splice_commit commit;
+    if (splice_commit_read(store, &commit_oid, &commit) != 0) {
+        fprintf(stderr, "error: failed to read commit\n");
+        splice_store_close(store);
+        free(splice_dir);
+        return 1;
+    }
+
+    /* Checkout */
+    int ret;
+    if (lazy) {
+        ret = splice_checkout_lazy(store, &commit.tree_oid, cwd);
+    } else {
+        ret = splice_checkout(store, &commit.tree_oid, cwd);
+    }
+
+    if (ret != 0) {
+        fprintf(stderr, "error: checkout failed\n");
+        splice_commit_free(&commit);
+        splice_store_close(store);
+        free(splice_dir);
+        return 1;
+    }
+
+    printf("Checked out %.16s (%s)\n", commit_oid.hex, lazy ? "lazy" : "full");
+
+    splice_commit_free(&commit);
+    splice_store_close(store);
+    free(splice_dir);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
@@ -413,6 +499,8 @@ int main(int argc, char **argv)
         return cmd_add(cmd_argc, cmd_argv);
     } else if (strcmp(cmd, "commit") == 0) {
         return cmd_commit(cmd_argc, cmd_argv);
+    } else if (strcmp(cmd, "checkout") == 0) {
+        return cmd_checkout(cmd_argc, cmd_argv);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         print_usage(argv[0]);

@@ -223,4 +223,21 @@ int splice_index_remove(splice_index *index, const char *path);
 /* Free memory allocated by splice_index_read(). */
 void splice_index_free(splice_index *index);
 
+/* Checkout operations ----------------------------------------------------- */
+
+/* Checkout a tree into the filesystem.
+ * Creates directories as needed, writes blob content to files, sets modes.
+ * Returns 0 on success, -1 on error. */
+int splice_checkout(splice_store *store, const splice_oid *tree_oid, const char *target_path);
+
+/* Lazy checkout: writes placeholder files instead of actual content.
+ * Placeholders contain "SPLICE_LAZY:<oid_hex>" and can be materialized later.
+ * Returns 0 on success, -1 on error. */
+int splice_checkout_lazy(splice_store *store, const splice_oid *tree_oid, const char *target_path);
+
+/* Materialize a lazy-checkout placeholder file.
+ * Reads the placeholder, fetches the blob from the store, writes actual content.
+ * Returns 0 on success, -1 on error. */
+int splice_materialize(splice_store *store, const char *path);
+
 #endif

@@ -129,12 +129,17 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 8: C library API and bindings
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
-- [ ] Documentation update
+- [x] Core implementation
+- [x] Tests
+- [x] Documentation update
 
 **Notes:**
-- 
+- High-level repository API (`splice_repo`) wraps store + working directory with `splice_repo_init()`, `splice_repo_open()`, `splice_repo_discover()`, and `splice_repo_close()`.
+- Convenience functions mirror CLI commands: `splice_repo_add()`, `splice_repo_commit()`, `splice_repo_checkout()`, `splice_repo_log()`, `splice_repo_diff()`, `splice_repo_sparse_load/save()`.
+- Library metadata: `splice_version_string()`, `splice_version()`, and `SPLICE_VERSION_MAJOR/MINOR/PATCH` macros.
+- Error handling: `splice_error` enum with `splice_strerror()` for human-readable messages.
+- Makefile builds `libsplice.a` (static) and `libsplice.so` (shared) alongside the CLI binary.
+- Comprehensive test suite in `tests/test_lib.c` covers version, errors, repo lifecycle, add/commit/checkout/log/diff/sparse, and null-arg safety.
 
 ---
 

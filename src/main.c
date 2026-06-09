@@ -21,6 +21,7 @@ static void print_usage(const char *prog)
     fprintf(stderr, "  add <file>        Add a file to the staging area\n");
     fprintf(stderr, "  commit -m <msg>   Create a commit from staged files\n");
     fprintf(stderr, "  checkout [--lazy] <ref>  Checkout a commit to the working directory\n");
+    fprintf(stderr, "  sparse-checkout (set|add|remove|list) [pattern]  Manage sparse-checkout patterns\n");
 }
 
 /* Walk up from start_dir looking for a .splice directory.
@@ -482,6 +483,126 @@ static int cmd_checkout(int argc, char **argv)
     return 0;
 }
 
+static int cmd_sparse_checkout(int argc, char **argv)
+{
+    if (argc < 1) {
+        fprintf(stderr, "error: no sparse-checkout subcommand given\n");
+        fprintf(stderr, "Usage: splice sparse-checkout (set|add|remove|list) [pattern]\n");
+        return 1;
+    }
+
+    const char *subcmd = argv[0];
+
+    char cwd[4096];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        fprintf(stderr, "error: cannot get current directory\n");
+        return 1;
+    }
+
+    char *splice_dir = find_splice_dir(cwd);
+    if (!splice_dir) {
+        fprintf(stderr, "error: not a splice repository\n");
+        return 1;
+    }
+
+    splice_sparse_checkout sc;
+    if (splice_sparse_load(splice_dir, &sc) != 0) {
+        fprintf(stderr, "error: failed to load sparse-checkout patterns\n");
+        free(splice_dir);
+        return 1;
+    }
+
+    int ret = 0;
+
+    if (strcmp(subcmd, "set") == 0) {
+        if (argc < 2) {
+            fprintf(stderr, "error: no pattern given\n");
+            splice_sparse_free(&sc);
+            free(splice_dir);
+            return 1;
+        }
+        splice_sparse_free(&sc);
+        memset(&sc, 0, sizeof(sc));
+        for (int i = 1; i < argc; i++) {
+            if (splice_sparse_add(&sc, argv[i]) != 0) {
+                fprintf(stderr, "error: failed to add pattern\n");
+                ret = 1;
+                break;
+            }
+        }
+        if (ret == 0) {
+            if (splice_sparse_save(splice_dir, &sc) != 0) {
+                fprintf(stderr, "error: failed to save sparse-checkout patterns\n");
+                ret = 1;
+            } else {
+                printf("Sparse-checkout patterns set.\n");
+            }
+        }
+    } else if (strcmp(subcmd, "add") == 0) {
+        if (argc < 2) {
+            fprintf(stderr, "error: no pattern given\n");
+            splice_sparse_free(&sc);
+            free(splice_dir);
+            return 1;
+        }
+        for (int i = 1; i < argc; i++) {
+            if (splice_sparse_add(&sc, argv[i]) != 0) {
+                fprintf(stderr, "error: failed to add pattern\n");
+                ret = 1;
+                break;
+            }
+        }
+        if (ret == 0) {
+            if (splice_sparse_save(splice_dir, &sc) != 0) {
+                fprintf(stderr, "error: failed to save sparse-checkout patterns\n");
+                ret = 1;
+            } else {
+                printf("Sparse-checkout pattern added.\n");
+            }
+        }
+    } else if (strcmp(subcmd, "remove") == 0) {
+        if (argc < 2) {
+            fprintf(stderr, "error: no pattern index given\n");
+            splice_sparse_free(&sc);
+            free(splice_dir);
+            return 1;
+        }
+        int idx = atoi(argv[1]);
+        if (idx < 0 || (size_t)idx >= sc.count) {
+            fprintf(stderr, "error: invalid pattern index\n");
+            ret = 1;
+        } else {
+            if (splice_sparse_remove(&sc, (size_t)idx) != 0) {
+                fprintf(stderr, "error: failed to remove pattern\n");
+                ret = 1;
+            } else {
+                if (splice_sparse_save(splice_dir, &sc) != 0) {
+                    fprintf(stderr, "error: failed to save sparse-checkout patterns\n");
+                    ret = 1;
+                } else {
+                    printf("Sparse-checkout pattern removed.\n");
+                }
+            }
+        }
+    } else if (strcmp(subcmd, "list") == 0) {
+        if (sc.count == 0) {
+            printf("(no sparse-checkout patterns defined)\n");
+        } else {
+            for (size_t i = 0; i < sc.count; i++) {
+                printf("[%zu] %s\n", i, sc.patterns[i]);
+            }
+        }
+    } else {
+        fprintf(stderr, "error: unknown sparse-checkout subcommand '%s'\n", subcmd);
+        fprintf(stderr, "Usage: splice sparse-checkout (set|add|remove|list) [pattern]\n");
+        ret = 1;
+    }
+
+    splice_sparse_free(&sc);
+    free(splice_dir);
+    return ret;
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
@@ -501,6 +622,8 @@ int main(int argc, char **argv)
         return cmd_commit(cmd_argc, cmd_argv);
     } else if (strcmp(cmd, "checkout") == 0) {
         return cmd_checkout(cmd_argc, cmd_argv);
+    } else if (strcmp(cmd, "sparse-checkout") == 0) {
+        return cmd_sparse_checkout(cmd_argc, cmd_argv);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         print_usage(argv[0]);

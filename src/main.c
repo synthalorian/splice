@@ -21,6 +21,8 @@ static void print_usage(const char *prog)
     fprintf(stderr, "  add <file>        Add a file to the staging area\n");
     fprintf(stderr, "  commit -m <msg>   Create a commit from staged files\n");
     fprintf(stderr, "  checkout [--lazy] <ref>  Checkout a commit to the working directory\n");
+    fprintf(stderr, "  log               Show commit history\n");
+    fprintf(stderr, "  diff [commit] [commit]   Show differences between commits or working tree\n");
     fprintf(stderr, "  sparse-checkout (set|add|remove|list) [pattern]  Manage sparse-checkout patterns\n");
 }
 
@@ -331,7 +333,10 @@ static int cmd_commit(int argc, char **argv)
     int has_parent = 0;
 
     if (splice_head_read(store, ref_name, sizeof(ref_name)) == 0) {
-        if (splice_ref_read(store, ref_name, &parent_oid) == 0) {
+        const char *ref = ref_name;
+        if (strncmp(ref, "refs/", 5) == 0)
+            ref += 5;
+        if (splice_ref_read(store, ref, &parent_oid) == 0) {
             has_parent = 1;
         }
     }
@@ -438,16 +443,17 @@ static int cmd_checkout(int argc, char **argv)
     /* Resolve ref to commit OID */
     splice_oid commit_oid;
     char ref_path[256];
-    snprintf(ref_path, sizeof(ref_path), "refs/heads/%s", ref);
+
+    if (strncmp(ref, "refs/", 5) == 0)
+        snprintf(ref_path, sizeof(ref_path), "%s", ref + 5);
+    else
+        snprintf(ref_path, sizeof(ref_path), "heads/%s", ref);
 
     if (splice_ref_read(store, ref_path, &commit_oid) != 0) {
-        /* Try as full ref name */
-        if (splice_ref_read(store, ref, &commit_oid) != 0) {
-            fprintf(stderr, "error: ref not found: %s\n", ref);
-            splice_store_close(store);
-            free(splice_dir);
-            return 1;
-        }
+        fprintf(stderr, "error: ref not found: %s\n", ref);
+        splice_store_close(store);
+        free(splice_dir);
+        return 1;
     }
 
     /* Read commit to get tree */
@@ -481,6 +487,159 @@ static int cmd_checkout(int argc, char **argv)
     splice_store_close(store);
     free(splice_dir);
     return 0;
+}
+
+static int cmd_log(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
+
+    char cwd[4096];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        fprintf(stderr, "error: cannot get current directory\n");
+        return 1;
+    }
+
+    char *splice_dir = find_splice_dir(cwd);
+    if (!splice_dir) {
+        fprintf(stderr, "error: not a splice repository\n");
+        return 1;
+    }
+
+    splice_store *store = splice_store_open(splice_dir);
+    if (!store) {
+        fprintf(stderr, "error: failed to open repository\n");
+        free(splice_dir);
+        return 1;
+    }
+
+    char ref_name[256];
+    const char *ref = "heads/main";
+
+    if (splice_head_read(store, ref_name, sizeof(ref_name)) == 0) {
+        ref = ref_name;
+        if (strncmp(ref, "refs/", 5) == 0)
+            ref += 5;
+    }
+
+    int ret = splice_log(store, ref);
+    if (ret != 0) {
+        fprintf(stderr, "error: failed to read log\n");
+    }
+
+    splice_store_close(store);
+    free(splice_dir);
+    return ret;
+}
+
+static int resolve_commit(splice_store *store, const char *spec, splice_oid *out_oid)
+{
+    if (!spec || !out_oid)
+        return -1;
+
+    if (strlen(spec) == 16 &&
+        splice_oid_from_hex(spec, out_oid) == 0 &&
+        splice_object_exists(store, out_oid) == 1) {
+        return 0;
+    }
+
+    char branch_ref[256];
+    snprintf(branch_ref, sizeof(branch_ref), "refs/heads/%s", spec);
+    if (splice_ref_read(store, branch_ref, out_oid) == 0)
+        return 0;
+
+    if (splice_ref_read(store, spec, out_oid) == 0)
+        return 0;
+
+    return -1;
+}
+
+static int cmd_diff(int argc, char **argv)
+{
+    char cwd[4096];
+    if (!getcwd(cwd, sizeof(cwd))) {
+        fprintf(stderr, "error: cannot get current directory\n");
+        return 1;
+    }
+
+    char *splice_dir = find_splice_dir(cwd);
+    if (!splice_dir) {
+        fprintf(stderr, "error: not a splice repository\n");
+        return 1;
+    }
+
+    splice_store *store = splice_store_open(splice_dir);
+    if (!store) {
+        fprintf(stderr, "error: failed to open repository\n");
+        free(splice_dir);
+        return 1;
+    }
+
+    int ret = 0;
+
+    if (argc == 0) {
+        char ref_name[256];
+        splice_oid head_oid;
+        const char *ref = "heads/main";
+
+        if (splice_head_read(store, ref_name, sizeof(ref_name)) == 0) {
+            ref = ref_name;
+            if (strncmp(ref, "refs/", 5) == 0)
+                ref += 5;
+        }
+
+        if (splice_ref_read(store, ref, &head_oid) != 0) {
+            fprintf(stderr, "error: no HEAD commit to diff against\n");
+            ret = 1;
+            goto done;
+        }
+
+        splice_commit head_commit;
+        if (splice_commit_read(store, &head_oid, &head_commit) != 0) {
+            fprintf(stderr, "error: failed to read HEAD commit\n");
+            ret = 1;
+            goto done;
+        }
+
+        ret = splice_diff_tree_workdir(store, &head_commit.tree_oid, cwd);
+        splice_commit_free(&head_commit);
+    } else if (argc == 1) {
+        splice_oid commit_oid;
+        if (resolve_commit(store, argv[0], &commit_oid) != 0) {
+            fprintf(stderr, "error: could not resolve '%s'\n", argv[0]);
+            ret = 1;
+            goto done;
+        }
+
+        splice_commit commit;
+        if (splice_commit_read(store, &commit_oid, &commit) != 0) {
+            fprintf(stderr, "error: failed to read commit\n");
+            ret = 1;
+            goto done;
+        }
+
+        ret = splice_diff_tree_workdir(store, &commit.tree_oid, cwd);
+        splice_commit_free(&commit);
+    } else {
+        splice_oid old_oid, new_oid;
+        if (resolve_commit(store, argv[0], &old_oid) != 0) {
+            fprintf(stderr, "error: could not resolve '%s'\n", argv[0]);
+            ret = 1;
+            goto done;
+        }
+        if (resolve_commit(store, argv[1], &new_oid) != 0) {
+            fprintf(stderr, "error: could not resolve '%s'\n", argv[1]);
+            ret = 1;
+            goto done;
+        }
+
+        ret = splice_diff_commits(store, &old_oid, &new_oid);
+    }
+
+done:
+    splice_store_close(store);
+    free(splice_dir);
+    return ret;
 }
 
 static int cmd_sparse_checkout(int argc, char **argv)
@@ -622,6 +781,10 @@ int main(int argc, char **argv)
         return cmd_commit(cmd_argc, cmd_argv);
     } else if (strcmp(cmd, "checkout") == 0) {
         return cmd_checkout(cmd_argc, cmd_argv);
+    } else if (strcmp(cmd, "log") == 0) {
+        return cmd_log(cmd_argc, cmd_argv);
+    } else if (strcmp(cmd, "diff") == 0) {
+        return cmd_diff(cmd_argc, cmd_argv);
     } else if (strcmp(cmd, "sparse-checkout") == 0) {
         return cmd_sparse_checkout(cmd_argc, cmd_argv);
     } else {

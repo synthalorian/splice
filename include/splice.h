@@ -243,6 +243,39 @@ int splice_checkout_lazy(splice_store *store, const splice_oid *tree_oid, const 
  * Returns 0 on success, -1 on error. */
 int splice_materialize(splice_store *store, const char *path);
 
+/* Diff operations --------------------------------------------------------- */
+
+/* Diff two tree objects.
+ * Prints status lines to stdout: A (added), D (deleted), M (modified).
+ * Returns 0 on success, -1 on error. */
+int splice_diff_trees(splice_store *store,
+                      const splice_oid *old_tree_oid,
+                      const splice_oid *new_tree_oid);
+
+/* Diff a tree against the working directory.
+ * base_path is the working directory root to compare against.
+ * Prints status lines to stdout: A, D, M.
+ * Returns 0 on success, -1 on error. */
+int splice_diff_tree_workdir(splice_store *store,
+                             const splice_oid *tree_oid,
+                             const char *base_path);
+
+/* Diff two commits by comparing their trees.
+ * Returns 0 on success, -1 on error. */
+int splice_diff_commits(splice_store *store,
+                        const splice_oid *old_commit_oid,
+                        const splice_oid *new_commit_oid);
+
+/* Log operations ---------------------------------------------------------- */
+
+/* Print commit log starting from a ref.
+ * Returns 0 on success, -1 on error. */
+int splice_log(splice_store *store, const char *ref_name);
+
+/* Print commit log starting from a commit OID.
+ * Returns 0 on success, -1 on error. */
+int splice_log_oid(splice_store *store, const splice_oid *commit_oid);
+
 /* Sparse checkout --------------------------------------------------------- */
 
 /* A collection of path patterns for sparse checkout.

@@ -5,5 +5,11 @@
 *.a
 *.so
 *.dylib
+splice
+tests/test_store
+tests/test_delta
+tests/test_tree
+tests/test_commit
+tests/test_refs
 build/
 cmake-build-*/

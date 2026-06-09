@@ -17,12 +17,12 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 1: Object store — content-addressable blob storage
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
-- [ ] Documentation update
+- [x] Core implementation
+- [x] Tests
+- [x] Documentation update
 
 **Notes:**
-- 
+- Object store implemented with xxhash64 content-addressing, sharded storage layout (objects/xx/xxxx...), atomic writes via temp+rename, and forward-compatible binary object header (type + 8-byte BE size).
 
 ---
 
@@ -31,12 +31,12 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 2: Delta compression engine (zstd)
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
+- [x] Core implementation
+- [x] Tests
 - [ ] Documentation update
 
 **Notes:**
-- 
+- Delta compression implemented using zstd dictionary compression. Base object is used as dictionary to compress new data. Delta objects store base OID reference + zstd compressed payload. `splice_delta_create()` and `splice_delta_apply()` provide high-level API.
 
 ---
 

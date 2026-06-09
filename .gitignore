@@ -11,5 +11,6 @@ tests/test_delta
 tests/test_tree
 tests/test_commit
 tests/test_refs
+tests/test_cli
 build/
 cmake-build-*/

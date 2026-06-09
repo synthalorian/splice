@@ -185,4 +185,42 @@ int splice_head_write(splice_store *store, const char *ref_name);
  * Returns 0 on success, -1 on error. */
 int splice_head_read(splice_store *store, char *out_ref_name, size_t max_len);
 
+/* Index / staging area ---------------------------------------------------- */
+
+/* A single entry in the index: path + OID + mode */
+typedef struct {
+    char *path;         /* file path, heap-allocated */
+    splice_oid oid;     /* blob OID */
+    uint32_t mode;      /* file mode (e.g. 0100644) */
+} splice_index_entry;
+
+/* In-memory representation of the index */
+typedef struct {
+    splice_index_entry *entries;
+    size_t count;
+    size_t capacity;
+} splice_index;
+
+/* Read the index from the store's index file.
+ * Returns 0 on success, -1 on error.
+ * On success, out_index is populated; caller must call splice_index_free(). */
+int splice_index_read(const char *store_path, splice_index *out_index);
+
+/* Write the index to the store's index file.
+ * Returns 0 on success, -1 on error. */
+int splice_index_write(const char *store_path, const splice_index *index);
+
+/* Add or update an entry in the index.
+ * If the path already exists, updates the OID and mode.
+ * Returns 0 on success, -1 on error. */
+int splice_index_add(splice_index *index, const char *path,
+                     const splice_oid *oid, uint32_t mode);
+
+/* Remove an entry from the index by path.
+ * Returns 0 on success, -1 if not found. */
+int splice_index_remove(splice_index *index, const char *path);
+
+/* Free memory allocated by splice_index_read(). */
+void splice_index_free(splice_index *index);
+
 #endif

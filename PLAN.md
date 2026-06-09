@@ -62,12 +62,17 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 4: CLI: init, add, commit
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
-- [ ] Documentation update
+- [x] Core implementation
+- [x] Tests
+- [x] Documentation update
 
 **Notes:**
-- 
+- CLI implemented with `init`, `add`, `commit` subcommands.
+- Index/staging area added as binary file `.splice/index` with versioned format.
+- `init` creates `.splice/` directory with `objects/`, `refs/`, and `HEAD` symbolic ref.
+- `add` reads files, stores as blobs, and adds to index with mode detection (0644/0755).
+- `commit` builds tree from index, creates commit object with parent chain, updates current ref, and clears index.
+- Repository discovery walks up from current directory looking for `.splice/`.
 
 ---
 

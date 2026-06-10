@@ -17,7 +17,7 @@
 /* Version                                                                   */
 /* ------------------------------------------------------------------------- */
 
-#define SPLICE_VERSION_STRING "0.1.0"
+#define SPLICE_VERSION_STRING "1.0.0"
 
 const char *splice_version_string(void)
 {

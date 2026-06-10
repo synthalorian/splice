@@ -27,12 +27,12 @@ static void test_version(void)
 {
     printf("  test_version ... ");
 
-    assert(strcmp(splice_version_string(), "0.1.0") == 0);
+    assert(strcmp(splice_version_string(), "1.0.0") == 0);
 
     int major = -1, minor = -1, patch = -1;
     splice_version(&major, &minor, &patch);
-    assert(major == 0);
-    assert(minor == 1);
+    assert(major == 1);
+    assert(minor == 0);
     assert(patch == 0);
 
     /* NULL args should be safe */

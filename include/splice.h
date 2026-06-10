@@ -10,11 +10,11 @@
 
 /* Version ----------------------------------------------------------------- */
 
-#define SPLICE_VERSION_MAJOR 0
-#define SPLICE_VERSION_MINOR 1
+#define SPLICE_VERSION_MAJOR 1
+#define SPLICE_VERSION_MINOR 0
 #define SPLICE_VERSION_PATCH 0
 
-/* Return the version string, e.g. "0.1.0". */
+/* Return the version string, e.g. "1.0.0". */
 const char *splice_version_string(void);
 
 /* Return version components via out-parameters (NULL ok). */

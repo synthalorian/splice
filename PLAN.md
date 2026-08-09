@@ -81,16 +81,18 @@ Minimalist Git alternative for binary assets. Content-addressable storage, delta
 **Goal:** Phase 5: Checkout with lazy materialization
 
 **Deliverables:**
-- [ ] Core implementation
-- [ ] Tests
-- [ ] Documentation update
+- [x] Core implementation
+- [x] Tests
+- [x] Documentation update
 
 **Notes:**
-- 
-
----
-
-### Phase 6: Partial clone and sparse checkout
+- `splice_checkout()` writes full file contents from tree objects to working directory
+- `splice_checkout_lazy()` writes placeholder files (`SPLICE_LAZY:<oid>`) instead of content
+- `splice_materialize()` reads placeholder, fetches object from store, writes real content
+- `mkdir_all()` creates parent directories recursively
+- `write_file()` handles file creation with proper permissions
+- 4 tests: basic checkout, lazy checkout, materialize, null args
+- All tests passing
 
 **Goal:** Phase 6: Partial clone and sparse checkout
 
